@@ -19,15 +19,14 @@
  */
 'use strict';
 
-const autoprefixer = require('autoprefixer');
 const path = require('path');
+const autoprefixer = require('autoprefixer');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const InterpolateHtmlPlugin = require('react-dev-utils/InterpolateHtmlPlugin');
 const SWPrecacheWebpackPlugin = require('sw-precache-webpack-plugin');
-const eslintFormatter = require('react-dev-utils/eslintFormatter');
 const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
 const paths = require('../paths');
 const getClientEnvironment = require('../env');
@@ -89,11 +88,7 @@ module.exports = {
       'backbone',
       'backbone.marionette',
       'moment',
-      'handlebars/runtime',
-      './src/main/js/libs/third-party/jquery-ui.js',
-      './src/main/js/libs/third-party/select2.js',
-      './src/main/js/libs/third-party/bootstrap/tooltip.js',
-      './src/main/js/libs/third-party/bootstrap/dropdown.js'
+      'handlebars/runtime'
     ],
 
     app: [
@@ -146,25 +141,6 @@ module.exports = {
   module: {
     strictExportPresence: true,
     rules: [
-      // TODO: Disable require.ensure as it's not a standard language feature.
-      // We are waiting for https://github.com/facebookincubator/create-react-app/issues/2176.
-      // { parser: { requireEnsure: false } },
-
-      // First, run the linter.
-      // It's important to do this before Babel processes the JS.
-      {
-        test: /\.(js|jsx)$/,
-        enforce: 'pre',
-        use: [
-          {
-            options: {
-              formatter: eslintFormatter
-            },
-            loader: require.resolve('eslint-loader')
-          }
-        ],
-        include: paths.appSrc
-      },
       // ** ADDING/UPDATING LOADERS **
       // The "file" loader handles all assets unless explicitly excluded.
       // The `exclude` list *must* be updated with every change to loader extensions.
@@ -178,6 +154,8 @@ module.exports = {
           /\.html$/,
           /\.(js|jsx)$/,
           /\.css$/,
+          /\.less$/,
+          /\.hbs$/,
           /\.json$/,
           /\.bmp$/,
           /\.gif$/,
@@ -205,6 +183,11 @@ module.exports = {
         include: paths.appSrc,
         loader: require.resolve('babel-loader')
       },
+      {
+        enforce: 'pre',
+        test: /\.less$/,
+        use: 'less-loader'
+      },
       // The notation here is somewhat confusing.
       // "postcss" loader applies autoprefixer to our CSS.
       // "css" loader resolves paths in CSS and adds assets as dependencies.
@@ -218,7 +201,7 @@ module.exports = {
       // use the "style" loader inside the async code so CSS from them won't be
       // in the main CSS file.
       {
-        test: /\.css$/,
+        test: /\.(css|less)$/,
         loader: ExtractTextPlugin.extract(
           Object.assign(
             {
@@ -229,7 +212,8 @@ module.exports = {
                   options: {
                     importLoaders: 1,
                     minimize: true,
-                    sourceMap: true
+                    sourceMap: true,
+                    url: false
                   }
                 },
                 {
@@ -257,7 +241,22 @@ module.exports = {
           )
         )
         // Note: this won't work without `new ExtractTextPlugin()` in `plugins`.
-      }
+      },
+      {
+        test: /\.hbs$/,
+        use: {
+          loader: 'handlebars-loader',
+          options: {
+            helperDirs: path.join(__dirname, '../../src/main/js/helpers/handlebars')
+          }
+        }
+      },
+      { test: require.resolve('jquery'), loader: 'expose-loader?$!expose-loader?jQuery' },
+      { test: require.resolve('underscore'), loader: 'expose-loader?_' },
+      { test: require.resolve('backbone'), loader: 'expose-loader?Backbone' },
+      { test: require.resolve('backbone.marionette'), loader: 'expose-loader?Marionette' },
+      { test: require.resolve('react'), loader: 'expose-loader?React' },
+      { test: require.resolve('react-dom'), loader: 'expose-loader?ReactDOM' }
       // ** STOP ** Are you adding a new loader?
       // Remember to add the new extension(s) to the "file" loader exclusion list.
     ]
